@@ -1,12 +1,12 @@
 #-
 ***我们需要一个脚本来把质量区分轻重
 ***set setlightmasses: mmH,mH;(针对4W试运行)
-#define Nmax "4"
+#define Nmax "0"
 ***该项是为了进行硬动量展开预先标记振幅分子上的power
 CF invDen,den,Mom,unitary,DEN,Log;
-s lin,lilin,Epson1,m,m1,m2,mmH,mH,num1,num2,D,I,FourPi,inverEpson1;
-set setheavymasses: mmH,mH;
-set setlightmasses: 0;
+s lin,lilin,Epson1,m,m1,m2,mmh,mH,num1,num2,D,I,FourPi,inverEpson1;
+set setheavymasses: mmh,mH;
+set setlightmasses: m1;
 #define n "4"
 Index itrick;
 ***为了做tensor reduction预放置lortenz定义
@@ -20,6 +20,9 @@ id SP(k1?,itrick?)=SP(k1,itrick);
 id SP(itrick?,k1?)=SP(itrick,k1);
 #do jf=1,200;
 id,once FermionChain( ?vars1, GA(k1?), ?vars2 )= Mom(k1,LLor'jf')*FermionChain( ?vars1, GA(LLor'jf'), ?vars2 );
+#enddo;
+#do jk=1,200;
+id,once Trace( ?vars1, GA(k1?), ?vars2 )= Mom(k1,LLor'jk')*Trace( ?vars1, GA(LLor'jk'), ?vars2 );
 #enddo;
 id Mom(itrick?,mua1?)=Mom(itrick,mua1);
 #endprocedure
@@ -41,6 +44,7 @@ endargument;
 argument Den,1;
 #do vari=1,`n';
 id k'vari'=0;
+id K'vari'=0;
 #enddo
 endargument;
 ***我们将Den变为Den（LOOP动量,外腿动量,质量,维数展开项目）,现在我们需要进行处理,进行硬动量展开,分为两类,***重质量和轻质量,SMEFT一般设置轻质量为0
@@ -64,10 +68,13 @@ id Den(q1?,0,m?,0)=Den(q1,m,0);
 id Den(0,0,m?,0)=Den(0,m,0);
 .sort
 ***我们已经对分子先做了全展开,挑出小于等于lin^Nmax的term,同时在此基础进一步进行了硬动量展开,但是我们注意到***写出Qgraf文件的时候传播子动量非LOOPterm有可能是k1+k2,再做一遍展开就行了。
+id SP(k1?,itrick?)=SP(k1,itrick);
+id SP(itrick?,k1?)=SP(itrick,k1);
 id SP(k1?,k2?)=SP(k1,k2);
+id SP(k1?,k1?)=SP(k1,k1);
 .sort
 id Den(0,0,0)=0;
-id Den(0,m,0)=-1/m^2;
+id Den(0,m?,0)=-1/m^2;
 .sort
 #endprocedure
 
@@ -90,8 +97,9 @@ endrepeat;
 *id,once GA(k1?) = Mom(k1,LLor'jf')*GA(LLor'jf');
 *#enddo;
 #do jf=1,200;
-id,once SP(k1?,k2?)=Mom(k1,splor'jf')*Mom(k2,splor'jf');
+   id,once SP(k1?,k2?)=Mom(k1,splor'jf')*Mom(k2,splor'jf');
 #enddo;
+id Mom(itrick?,mua1?)=Mom(itrick,mua1);
 id Mom(q1,mua1?) = lilin*Mom(q1,mua1);
 repeat;
 id lilin^2=1;
@@ -127,6 +135,10 @@ id Mom(k1?NonLOOP,mua1?)*FermionChain(?vars1,GA(mua1?),?vars2)= FermionChain(?va
 endrepeat;
 
 repeat;
+id Mom(k1?NonLOOP,mua1?)*Trace(?vars1,GA(mua1?),?vars2)= Trace(?vars1,GA(k1),?vars2);
+endrepeat;
+
+repeat;
 id Mom(k1?,mua1?)*Mom(k2?,mua1?)=SP(k1,k2);
 id Mom(k1?,mua1?)*Mom(k1?,mua1?)=SP(k1,k1);
 endrepeat;
@@ -137,6 +149,13 @@ id  FermionChain(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(LLor1?LLori),?vars2)=
 id  FermionChain(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(k2?NonLOOP),GA(LLor1?LLori),?vars2)=4*SP(k1,k2)*FermionChain(?vars1,?vars2)*unitary+(D-4)* FermionChain(?vars1,GA(k1),GA(k2),?vars2);
 id  FermionChain(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(k2?NonLOOP),GA(k3?NonLOOP),GA(LLor1?LLori),?vars2)=-2*FermionChain(vars1,GA(k3),GA(k2),GA(k1),vars2)-(D-4)*FermionChain(?vars1,GA(k1),GA(k2),GA(k3),?vars2);
 id  FermionChain(?vars1,GA(LLor1?LLori)* GA(k1?NonLOOP)*GA(k2?NonLOOP)*GA(k3?NonLOOP)*GA(k4?NonLOOP)*GA(LLor1?LLori),?vars2)=2*FermionChain(?vars1,GA(k3),GA(k2),GA(k1),GA(k4),?vars2)+2*FermionChain(?vars1,GA(k4),GA(k1),GA(k2),GA(k3),?vars2)+(D-4)*FermionChain(?vars1,GA(k1),GA(k2),GA(k3),GA(k4),?vars2);
+endrepeat;
+repeat;
+id Trace(?vars1,GA(LLor1?LLori),GA(LLor1?LLori),?vars2)=D*Trace(?vars1,?vars2);
+id  Trace(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(LLor1?LLori),?vars2)=(2-D)*Trace(?vars1,GA(k1),?vars2);
+id  Trace(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(k2?NonLOOP),GA(LLor1?LLori),?vars2)=4*SP(k1,k2)*Trace(?vars1,?vars2)*unitary+(D-4)* Trace(?vars1,GA(k1),GA(k2),?vars2);
+id  Trace(?vars1,GA(LLor1?LLori), GA(k1?NonLOOP),GA(k2?NonLOOP),GA(k3?NonLOOP),GA(LLor1?LLori),?vars2)=-2*Trace(vars1,GA(k3),GA(k2),GA(k1),vars2)-(D-4)*Trace(?vars1,GA(k1),GA(k2),GA(k3),?vars2);
+id  Trace(?vars1,GA(LLor1?LLori)* GA(k1?NonLOOP)*GA(k2?NonLOOP)*GA(k3?NonLOOP)*GA(k4?NonLOOP)*GA(LLor1?LLori),?vars2)=2*Trace(?vars1,GA(k3),GA(k2),GA(k1),GA(k4),?vars2)+2*Trace(?vars1,GA(k4),GA(k1),GA(k2),GA(k3),?vars2)+(D-4)*Trace(?vars1,GA(k1),GA(k2),GA(k3),GA(k4),?vars2);
 endrepeat;
 repeat;
 id SP(-k1?NonLOOP,k2?NonLOOP)=-SP(k1,k2);
@@ -218,12 +237,13 @@ id Epson1=0;
 #call expandmom
 #call preparenumerator
 #call propagatoridea
+#call gamma5
 #call tensorreduction
 ***#include kin_relation.frm
 #call partialfractioning(isnoteft,LOOPorder)
 #call IBPtechinque
 #call Paxevaluate
-#include color.frm
+*#include color.frm
 #endprocedure
 
 
